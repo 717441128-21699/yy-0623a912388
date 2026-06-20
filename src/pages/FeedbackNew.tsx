@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Camera, MapPin, FileText, Check } from 'lucide-react'
+import { ArrowLeft, MapPin, FileText, Check, AlertTriangle } from 'lucide-react'
 import { useStore } from '@/store/useStore'
+import { projects } from '@/data/mockData'
+import PhotoUploader from '@/components/PhotoUploader'
 import type { Feedback } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -11,7 +13,10 @@ export default function FeedbackNew() {
 
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
+  const [photos, setPhotos] = useState<string[]>([])
   const [submitted, setSubmitted] = useState(false)
+
+  const project = projects.find(p => p.id === currentProjectId)
 
   const roleNames: Record<string, string> = {
     safety: '安全员',
@@ -29,7 +34,7 @@ export default function FeedbackNew() {
       schemeId: currentSchemeId ?? '',
       description,
       location,
-      photos: [],
+      photos,
       status: '待处理',
       createdAt: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
       reporterRole: currentRole!,
@@ -65,27 +70,23 @@ export default function FeedbackNew() {
           <button onClick={() => navigate(-1)} className="text-stone-500">
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-lg font-bold text-stone-900">提交现场反馈</h1>
+          <div className="flex-1">
+            <h1 className="text-lg font-bold text-stone-900">提交现场反馈</h1>
+            {project && <p className="text-stone-400 text-xs mt-0.5">{project.name}</p>}
+          </div>
         </div>
       </div>
 
       <div className="px-4 py-4 space-y-4">
-        <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
-          <p className="text-amber-700 text-xs">
+        <div className="bg-amber-50 rounded-xl p-3 border border-amber-100 flex gap-2">
+          <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
+          <p className="text-amber-700 text-xs leading-relaxed">
             当发现方案与现场实际条件不符时，请拍照记录并描述具体位置和问题，提交给技术负责人处理。
           </p>
         </div>
 
-        <div>
-          <label className="text-xs font-medium text-stone-500 mb-2 flex items-center gap-1.5">
-            <Camera size={12} />现场照片
-          </label>
-          <div className="flex gap-3">
-            <button className="w-20 h-20 border-2 border-dashed border-stone-300 rounded-xl flex flex-col items-center justify-center text-stone-300 hover:border-orange-400 hover:text-orange-400 transition-colors">
-              <Camera size={20} />
-              <span className="text-[10px] mt-1">拍照</span>
-            </button>
-          </div>
+        <div className="bg-white rounded-2xl p-4 border border-stone-100 shadow-sm">
+          <PhotoUploader photos={photos} onChange={setPhotos} maxPhotos={9} />
         </div>
 
         <div>
@@ -96,7 +97,7 @@ export default function FeedbackNew() {
             type="text"
             value={location}
             onChange={e => setLocation(e.target.value)}
-            placeholder="描述问题所在的具体位置"
+            placeholder="例如：A栋3层东侧悬挑锚固点"
             className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-orange-400 placeholder:text-stone-300"
           />
         </div>
@@ -108,7 +109,7 @@ export default function FeedbackNew() {
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
-            placeholder="详细描述方案与现场条件不符的情况"
+            placeholder="详细描述方案与现场条件不符的情况..."
             rows={4}
             className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-orange-400 placeholder:text-stone-300 resize-none"
           />

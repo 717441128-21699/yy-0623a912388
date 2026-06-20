@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 
 export default function Scheme() {
   const navigate = useNavigate()
-  const { currentProjectId, currentTypeId, currentSchemeId, getScheme } = useStore()
+  const { currentProjectId, currentTypeId, currentSchemeId, getScheme, setProject } = useStore()
   const scheme = getScheme()
   const currentProject = projects.find(p => p.id === currentProjectId)
 
@@ -64,6 +64,7 @@ export default function Scheme() {
             <button
               key={project.id}
               onClick={() => {
+                setProject(project.id)
                 navigate(`/projects/${project.id}/types`)
               }}
               className="w-full bg-white rounded-2xl p-4 shadow-sm border border-stone-100 flex items-start gap-3 text-left active:scale-[0.98] transition-transform"

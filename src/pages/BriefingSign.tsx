@@ -10,7 +10,7 @@ const trades = ['架子工', '木工', '钢筋工', '混凝土工', '电焊工',
 
 export default function BriefingSign() {
   const navigate = useNavigate()
-  const { getScheme, getLatestSession, addSignRecord, createBriefingSession, currentSchemeId } = useStore()
+  const { getScheme, getLatestSession, addSignRecord, createBriefingSession, currentSchemeId, currentProjectId } = useStore()
   const scheme = getScheme()
 
   const [name, setName] = useState('')
@@ -27,6 +27,7 @@ export default function BriefingSign() {
       const now = new Date()
       const newSession: BriefingSession = {
         id: `bs_${Date.now()}`,
+        projectId: currentProjectId ?? '',
         schemeId: currentSchemeId!,
         date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
         location: scheme.title,

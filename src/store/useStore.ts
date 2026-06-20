@@ -22,6 +22,7 @@ interface AppState {
   clearQuizAnswers: () => void
   addFeedback: (feedback: Feedback) => void
   updateFeedbackStatus: (feedbackId: string, status: '待处理' | '已处理') => void
+  handleFeedback: (feedbackId: string, handlerComment: string, handlerTime: string) => void
 
   getProject: () => typeof projects[0] | undefined
   getHazardTypes: () => typeof hazardTypes
@@ -92,6 +93,12 @@ export const useStore = create<AppState>((set, get) => ({
   updateFeedbackStatus: (feedbackId, status) => set(state => ({
     feedbacks: state.feedbacks.map(f =>
       f.id === feedbackId ? { ...f, status } : f
+    ),
+  })),
+
+  handleFeedback: (feedbackId, handlerComment, handlerTime) => set(state => ({
+    feedbacks: state.feedbacks.map(f =>
+      f.id === feedbackId ? { ...f, status: '已处理', handlerComment, handlerTime } : f
     ),
   })),
 

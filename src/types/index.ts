@@ -64,6 +64,7 @@ export interface QuizQuestion {
 
 export interface BriefingSession {
   id: string
+  projectId: string
   schemeId: string
   date: string
   location: string
@@ -97,4 +98,6 @@ export interface Feedback {
   createdAt: string
   reporterRole: UserRole
   reporterName: string
+  handlerComment?: string
+  handlerTime?: string
 }

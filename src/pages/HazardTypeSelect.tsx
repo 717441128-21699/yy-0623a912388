@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect } from 'react'
 import { ArrowLeft, Pickaxe, Construction, LayoutGrid, Hammer, Building2, Anchor } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { hazardTypes } from '@/data/mockData'
@@ -21,11 +22,17 @@ const typeColors: Record<string, { bg: string; text: string; icon: string }> = {
 export default function HazardTypeSelect() {
   const { projectId } = useParams()
   const navigate = useNavigate()
-  const { setType, currentRole } = useStore()
+  const { setType, setProject, currentRole, currentProjectId } = useStore()
 
   const roleLabel = currentRole === 'safety' ? '安全员' : currentRole === 'construction' ? '施工员' : '班组长'
 
   const types = hazardTypes.filter(h => h.projectId === projectId)
+
+  useEffect(() => {
+    if (projectId && projectId !== currentProjectId) {
+      setProject(projectId)
+    }
+  }, [projectId, currentProjectId, setProject])
 
   return (
     <div className="min-h-screen bg-stone-50">

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, AlertTriangle, ListOrdered, CheckSquare, Ban, ChevronRight } from 'lucide-react'
 import { useStore } from '@/store/useStore'
@@ -18,8 +18,27 @@ const tabs: { key: TabKey; label: string; icon: LucideIcon }[] = [
 export default function SchemeDetail() {
   const { projectId, typeId } = useParams()
   const navigate = useNavigate()
-  const { getScheme, getControlPoints, getConstructionSteps, getAcceptanceNodes, getProhibitions } = useStore()
+  const {
+    getScheme,
+    getControlPoints,
+    getConstructionSteps,
+    getAcceptanceNodes,
+    getProhibitions,
+    setProject,
+    setType,
+    currentProjectId,
+    currentTypeId,
+  } = useStore()
   const [activeTab, setActiveTab] = useState<TabKey>('control')
+
+  useEffect(() => {
+    if (projectId && projectId !== currentProjectId) {
+      setProject(projectId)
+    }
+    if (typeId && typeId !== currentTypeId) {
+      setType(typeId)
+    }
+  }, [projectId, typeId, currentProjectId, currentTypeId, setProject, setType])
 
   const scheme = getScheme()
   const controlPts = getControlPoints()
