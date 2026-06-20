@@ -100,4 +100,5 @@ export interface Feedback {
   reporterName: string
   handlerComment?: string
   handlerTime?: string
+  handlerName?: string
 }

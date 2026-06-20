@@ -8,6 +8,7 @@ import Scheme from "@/pages/Scheme";
 import Briefing from "@/pages/Briefing";
 import BriefingSign from "@/pages/BriefingSign";
 import BriefingDetail from "@/pages/BriefingDetail";
+import BriefingExport from "@/pages/BriefingExport";
 import Quiz from "@/pages/Quiz";
 import QuizResult from "@/pages/QuizResult";
 import Feedback from "@/pages/Feedback";
@@ -32,6 +33,7 @@ export default function App() {
         />
         <Route path="/briefing/sign" element={<BriefingSign />} />
         <Route path="/briefing/:sessionId" element={<BriefingDetail />} />
+        <Route path="/briefing/:sessionId/export" element={<BriefingExport />} />
         <Route path="/briefing/quiz" element={<Quiz />} />
         <Route path="/briefing/quiz/result" element={<QuizResult />} />
         <Route

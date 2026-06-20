@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Users, Camera, Plus, User, Briefcase, CreditCard } from 'lucide-react'
+import { ArrowLeft, Users, Camera, Plus, User, Briefcase, CreditCard, Share2, Printer, X } from 'lucide-react'
 import { useStore } from '@/store/useStore'
+import { projects, hazardTypes, schemes } from '@/data/mockData'
 import PhotoUploader from '@/components/PhotoUploader'
 import type { BriefingPhoto } from '@/types'
 import { cn } from '@/lib/utils'
@@ -13,6 +14,13 @@ export default function BriefingDetail() {
 
   const session = briefingSessions.find(s => s.id === sessionId)
   const [localPhotos, setLocalPhotos] = useState<string[]>([])
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null)
+
+  const project = projects.find(p => p.id === session?.projectId)
+  const scheme = session?.schemeId ? schemes.find(s => s.id === session.schemeId) ?? null : null
+  const hazardTypeName = scheme
+    ? hazardTypes.find(h => h.id === scheme.typeId)?.name ?? ''
+    : ''
 
   if (!session) {
     return (
@@ -37,12 +45,24 @@ export default function BriefingDetail() {
   return (
     <div className="min-h-screen bg-stone-50 pb-8">
       <div className="bg-white border-b border-stone-100 px-4 pt-12 pb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-3">
           <button onClick={() => navigate('/briefing')} className="text-stone-500">
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-lg font-bold text-stone-900">交底详情</h1>
+          <h1 className="text-lg font-bold text-stone-900 flex-1">交底详情</h1>
+          <button
+            onClick={() => navigate(`/briefing/${session.id}/export`)}
+            className="flex items-center gap-1 text-orange-500 text-xs font-medium bg-orange-50 px-2.5 py-1.5 rounded-lg active:scale-[0.97]"
+          >
+            <Share2 size={12} />
+            导出
+          </button>
         </div>
+        {(project || hazardTypeName) && (
+          <p className="text-stone-400 text-xs">
+            {project?.name}{hazardTypeName && ` · ${hazardTypeName}`}
+          </p>
+        )}
       </div>
 
       <div className="px-4 py-4 space-y-4">
@@ -99,22 +119,14 @@ export default function BriefingDetail() {
               现场照片 <span className="text-stone-300 text-xs">({session.photos.length}张)</span>
             </h3>
             <div className="grid grid-cols-3 gap-2">
-              {session.photos.map(photo => (
-                <img
-                  key={photo.id}
-                  src={photo.url}
-                  alt="现场照片"
-                  className={cn(
-                    'w-full aspect-square object-cover rounded-xl',
-                    'cursor-pointer hover:opacity-90 transition-opacity'
-                  )}
-                  onClick={() => {
-                    const w = window.open()
-                    if (w) {
-                      w.document.write(`<img src="${photo.url}" style="max-width:100%;max-height:100vh;margin:auto;display:block;" />`)
-                    }
-                  }}
-                />
+              {session.photos.map((photo, index) => (
+                <div
+                  key={`${photo.id}-${index}`}
+                  className="aspect-square rounded-xl overflow-hidden bg-stone-100 cursor-pointer active:opacity-80 transition-opacity"
+                  onClick={() => setPreviewIndex(index)}
+                >
+                  <img src={photo.url} alt={`现场照片${index + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                </div>
               ))}
             </div>
           </div>
@@ -160,6 +172,39 @@ export default function BriefingDetail() {
           )}
         </div>
       </div>
+
+      {previewIndex !== null && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          onClick={() => setPreviewIndex(null)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+            onClick={() => setPreviewIndex(null)}
+          >
+            <X size={20} />
+          </button>
+          <img
+            src={session.photos[previewIndex].url}
+            alt="预览"
+            className="max-w-full max-h-full object-contain"
+          />
+          {session.photos.length > 1 && (
+            <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-2">
+              {session.photos.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => { e.stopPropagation(); setPreviewIndex(i) }}
+                  className={cn(
+                    'w-2 h-2 rounded-full transition-colors',
+                    i === previewIndex ? 'bg-white' : 'bg-white/30'
+                  )}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

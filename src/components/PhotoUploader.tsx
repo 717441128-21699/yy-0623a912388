@@ -9,24 +9,29 @@ interface PhotoUploaderProps {
   showLabel?: boolean
 }
 
+const readFileAsDataUrl = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => resolve(e.target?.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function PhotoUploader({ photos, onChange, maxPhotos = 9, showLabel = true }: PhotoUploaderProps) {
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
 
-  const handleFile = (files: FileList | null) => {
+  const handleFile = async (files: FileList | null) => {
     if (!files) return
     const remaining = maxPhotos - photos.length
+    if (remaining <= 0) return
     const filesToProcess = Array.from(files).slice(0, remaining)
-
-    filesToProcess.forEach(file => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string
-        onChange([...photos, dataUrl])
-      }
-      reader.readAsDataURL(file)
-    })
+    const urls = await Promise.all(filesToProcess.map(readFileAsDataUrl))
+    onChange([...photos, ...urls])
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const removePhoto = (index: number) => {
@@ -42,7 +47,7 @@ export default function PhotoUploader({ photos, onChange, maxPhotos = 9, showLab
       )}
       <div className="flex flex-wrap gap-2">
         {photos.map((photo, index) => (
-          <div key={index} className="relative w-20 h-20 rounded-xl overflow-hidden shadow-sm border border-stone-100 group">
+          <div key={`${photo.slice(-20)}-${index}`} className="relative w-20 h-20 rounded-xl overflow-hidden shadow-sm border border-stone-100 group">
             <img
               src={photo}
               alt={`现场照片 ${index + 1}`}
@@ -51,7 +56,7 @@ export default function PhotoUploader({ photos, onChange, maxPhotos = 9, showLab
             />
             <button
               onClick={() => removePhoto(index)}
-              className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity"
             >
               <X size={10} />
             </button>

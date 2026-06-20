@@ -1,21 +1,36 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, MapPin, Clock, User, CheckCircle2, AlertCircle, ImagePlus, MessageSquare, CalendarDays } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, User, CheckCircle2, AlertCircle, ImagePlus, MessageSquare, CalendarDays, UserCog, Check } from 'lucide-react'
 import { useStore } from '@/store/useStore'
-import { projects } from '@/data/mockData'
+import { projects, hazardTypes, schemes } from '@/data/mockData'
 import { cn } from '@/lib/utils'
 
 export default function FeedbackDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { feedbacks, handleFeedback, currentRole } = useStore()
+  const { feedbacks, handleFeedback, currentRole, currentHandlerName, setCurrentHandlerName } = useStore()
 
   const [handlerComment, setHandlerComment] = useState('')
+  const [handlerName, setHandlerName] = useState(currentHandlerName)
+  const [handlerTime, setHandlerTime] = useState('')
   const [showHandler, setShowHandler] = useState(false)
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
 
+  useEffect(() => {
+    if (showHandler && !handlerTime) {
+      const now = new Date()
+      const tzOffset = now.getTimezoneOffset() * 60000
+      const localISOTime = new Date(now.getTime() - tzOffset).toISOString().slice(0, 16)
+      setHandlerTime(localISOTime)
+    }
+  }, [showHandler])
+
   const feedback = feedbacks.find(f => f.id === id)
   const project = projects.find(p => p.id === feedback?.projectId)
+  const hazardType = feedback?.schemeId ? schemes.find(s => s.id === feedback.schemeId) ?? null : null
+  const typeName = hazardType
+    ? hazardTypes.find(h => h.id === hazardType.typeId)?.name ?? ''
+    : ''
 
   if (!feedback) {
     return (
@@ -31,11 +46,18 @@ export default function FeedbackDetail() {
     teamLeader: '班组长',
   }
 
+  const formatHandlerTime = (s: string) => {
+    if (!s) return ''
+    return s.replace('T', ' ')
+  }
+
   const handleSubmit = () => {
-    if (!handlerComment.trim()) return
-    const now = new Date()
-    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-    handleFeedback(feedback.id, handlerComment.trim(), timeStr)
+    if (!handlerComment.trim() || !handlerName.trim() || !handlerTime) return
+    const timeStr = formatHandlerTime(handlerTime)
+    handleFeedback(feedback.id, handlerComment.trim(), timeStr, handlerName.trim())
+    if (handlerName.trim() !== currentHandlerName) {
+      setCurrentHandlerName(handlerName.trim())
+    }
     setShowHandler(false)
   }
 
@@ -48,7 +70,9 @@ export default function FeedbackDetail() {
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-stone-900">反馈详情</h1>
-            {project && <p className="text-stone-400 text-xs mt-0.5">{project.name}</p>}
+            <p className="text-stone-400 text-xs mt-0.5">
+              {project?.name}{typeName && ` · ${typeName}`}
+            </p>
           </div>
         </div>
       </div>
@@ -74,12 +98,19 @@ export default function FeedbackDetail() {
               {feedback.handlerTime && (
                 <p className="text-xs text-emerald-600 mt-0.5">处理时间：{feedback.handlerTime}</p>
               )}
+              {feedback.handlerName && (
+                <p className="text-xs text-emerald-600 mt-0.5 flex items-center gap-1">
+                  <UserCog size={10} />
+                  处理人：{feedback.handlerName}
+                </p>
+              )}
             </div>
             {feedback.status === '待处理' && (
               <button
                 onClick={() => setShowHandler(!showHandler)}
                 className="flex items-center gap-1 bg-orange-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium active:scale-[0.97] transition-transform"
               >
+                <Check size={12} />
                 处理反馈
               </button>
             )}
@@ -87,37 +118,71 @@ export default function FeedbackDetail() {
         </div>
 
         {showHandler && feedback.status === '待处理' && (
-          <div className="bg-white rounded-2xl p-4 border border-stone-100 shadow-sm animate-fade-in">
+          <div className="bg-white rounded-2xl p-4 border border-stone-100 shadow-sm">
             <h3 className="text-sm font-semibold text-stone-900 mb-3 flex items-center gap-2">
-              <MessageSquare size={14} className="text-orange-500" />
-              处理意见
+              <UserCog size={14} className="text-orange-500" />
+              技术负责人处理反馈
             </h3>
-            <textarea
-              value={handlerComment}
-              onChange={e => setHandlerComment(e.target.value)}
-              placeholder="请填写处理意见..."
-              rows={3}
-              className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-orange-400 placeholder:text-stone-300 resize-none"
-            />
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={() => setShowHandler(false)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-stone-500 bg-stone-100 active:scale-[0.98] transition-transform"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={!handlerComment.trim()}
-                className={cn(
-                  'flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all',
-                  handlerComment.trim()
-                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20 active:scale-[0.98]'
-                    : 'bg-stone-100 text-stone-300 cursor-not-allowed'
-                )}
-              >
-                确认处理
-              </button>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-stone-500 mb-1 flex items-center gap-1.5">
+                  <User size={12} />处理人
+                </label>
+                <input
+                  type="text"
+                  value={handlerName}
+                  onChange={e => setHandlerName(e.target.value)}
+                  placeholder="请输入处理人姓名"
+                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-orange-400 placeholder:text-stone-300"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-stone-500 mb-1 flex items-center gap-1.5">
+                  <CalendarDays size={12} />处理时间
+                </label>
+                <input
+                  type="datetime-local"
+                  value={handlerTime}
+                  onChange={e => setHandlerTime(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-orange-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-stone-500 mb-1 flex items-center gap-1.5">
+                  <MessageSquare size={12} />处理意见
+                </label>
+                <textarea
+                  value={handlerComment}
+                  onChange={e => setHandlerComment(e.target.value)}
+                  placeholder="请填写详细的处理意见，包含整改要求和建议..."
+                  rows={4}
+                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-orange-400 placeholder:text-stone-300 resize-none"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowHandler(false)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium text-stone-500 bg-stone-100 active:scale-[0.98] transition-transform"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={!handlerComment.trim() || !handlerName.trim() || !handlerTime}
+                  className={cn(
+                    'flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all',
+                    handlerComment.trim() && handlerName.trim() && handlerTime
+                      ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20 active:scale-[0.98]'
+                      : 'bg-stone-100 text-stone-300 cursor-not-allowed'
+                  )}
+                >
+                  确认处理
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -128,19 +193,27 @@ export default function FeedbackDetail() {
               <MessageSquare size={14} />
               处理意见
             </h3>
-            <p className="text-sm text-emerald-700 leading-relaxed">{feedback.handlerComment}</p>
-            {feedback.handlerTime && (
-              <p className="text-xs text-emerald-500 mt-2 flex items-center gap-1">
-                <CalendarDays size={10} />
-                {feedback.handlerTime}
-              </p>
-            )}
+            <p className="text-sm text-emerald-700 leading-relaxed whitespace-pre-wrap">{feedback.handlerComment}</p>
+            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-emerald-100">
+              {feedback.handlerName && (
+                <p className="text-xs text-emerald-600 flex items-center gap-1">
+                  <UserCog size={10} />
+                  {feedback.handlerName}
+                </p>
+              )}
+              {feedback.handlerTime && (
+                <p className="text-xs text-emerald-500 flex items-center gap-1">
+                  <Clock size={10} />
+                  {feedback.handlerTime}
+                </p>
+              )}
+            </div>
           </div>
         )}
 
         <div className="bg-white rounded-2xl p-4 border border-stone-100 shadow-sm">
           <h3 className="text-sm font-semibold text-stone-900 mb-2">问题描述</h3>
-          <p className="text-stone-600 text-sm leading-relaxed">{feedback.description}</p>
+          <p className="text-stone-600 text-sm leading-relaxed whitespace-pre-wrap">{feedback.description}</p>
         </div>
 
         {feedback.photos.length > 0 && (
@@ -152,11 +225,11 @@ export default function FeedbackDetail() {
             <div className="grid grid-cols-3 gap-2">
               {feedback.photos.map((photo, index) => (
                 <div
-                  key={index}
+                  key={`${photo.slice(-20)}-${index}`}
                   className="aspect-square rounded-xl overflow-hidden bg-stone-100 cursor-pointer active:opacity-80 transition-opacity"
                   onClick={() => setPreviewIndex(index)}
                 >
-                  <img src={photo} alt={`现场照片${index + 1}`} className="w-full h-full object-cover" />
+                  <img src={photo} alt={`现场照片${index + 1}`} className="w-full h-full object-cover" loading="lazy" />
                 </div>
               ))}
             </div>
@@ -169,6 +242,12 @@ export default function FeedbackDetail() {
             <span className="text-stone-400">位置：</span>
             <span className="text-stone-700">{feedback.location}</span>
           </div>
+          {typeName && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-stone-400">工程类型：</span>
+              <span className="text-stone-700">{typeName}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-sm">
             <Clock size={14} className="text-stone-400" />
             <span className="text-stone-400">时间：</span>
